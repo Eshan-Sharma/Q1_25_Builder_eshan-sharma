@@ -19,7 +19,7 @@ const mintAddress = new PublicKey(
       mintAddress,
       keypair.publicKey
     );
-    console.log(`ata: ${ata.address.toBase58}`);
+    console.log(`ata: ${ata.address.toBase58()}`);
     const mintTx = await mintTo(
       connection,
       keypair,
@@ -33,7 +33,5 @@ const mintAddress = new PublicKey(
     console.error(`Oops, something went wrong: ${error}`);
   }
 })();
-// ata: toBase58() {
-//     return bs58__default.default.encode(this.toBytes());
-//   }
-// Mint transaction: 4owJtpUQZv79J1yiNLmLF9f34UndJkxC2gUxqWHXvrEmgMyRhMiR2dRwGZmfiernNyNs5tVdbnSGy4mBDFuc7WSm
+// ata: 4BQFh6v935Uscc3Wiv2VN4vA9QEPWxFgNt1CbdVARK9g
+// Mint transaction: 39ttFTTERTu74CDvnZqGdWshahpgWyj2yDuQvsNao46KbpNmErgYLDVnzkBc79NTsKBBWv2ekLgKpJ9DC3hPnDzE
