@@ -1,6 +1,13 @@
 {
   "dependencies": {
     "@solana/spl-token": "^0.4.9",
-    "@solana/web3.js": "^1.98.0"
+    "@solana/web3.js": "^1.98.0",
+    "typescript": "^5.7.3"
+  },
+  "scripts": {
+    "spl_init": "ts-node ./spl_init.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
   }
 }
