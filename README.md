@@ -8,7 +8,6 @@
    1. Write a typescript function to convert a Base58 string to wallet address.
    2. Write a typescript function to convert a wallet address to Base58 string.
 4. Enroll in Turbine3 using IDL
-   1. Use the provided IDL with the updated program address to enroll in the Turbine3 program.
 
 #### Task 2. Prerequisite Rust Task
 
