@@ -1,0 +1,6 @@
+[submodule "Rust-prereq-task-2"]
+	path = Rust-prereq-task-2
+	url = https://github.com/Eshan-Sharma/rust-prereq-q1.git
+[submodule "Typescript-prereq-task-1"]
+	path = Typescript-prereq-task-1
+	url = https://github.com/Eshan-Sharma/typescript-prereq-q1.git
