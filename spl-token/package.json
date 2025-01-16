@@ -1,12 +1,17 @@
 {
   "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@metaplex-foundation/mpl-token-metadata": "^3.3.0",
+    "@metaplex-foundation/umi": "^1.0.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.0.0",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.0",
     "typescript": "^5.7.3"
   },
   "scripts": {
     "spl_init": "ts-node ./spl_init.ts",
-    "spl_mint": "ts-node ./spl_mint.ts"
+    "spl_mint": "ts-node ./spl_mint.ts",
+    "spl_metadata": "ts-node ./spl_metadata.ts"
   },
   "devDependencies": {
     "ts-node": "^10.9.1"
