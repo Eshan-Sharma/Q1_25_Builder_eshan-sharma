@@ -37,3 +37,11 @@
 12. SPL Token
 13. SPL Token functions
 14. PDA (Program Derived Address)
+
+#### Day 2: Metaplex and Token
+
+1. Metaplex - Introduction to Metaplex, metadata, master edition and collections
+2. Metaplex Token standard - NFT, Semi-fungible assets and programmable NFTs.
+3. Understanding URI and UMI framework which is a modular framework for creating javascript clients for Solana programs.
+4. Adding metadata to SPL tokens
+5. Transferring SPL token
