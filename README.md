@@ -45,3 +45,11 @@
 3. Understanding URI and UMI framework which is a modular framework for creating javascript clients for Solana programs.
 4. Adding metadata to SPL tokens
 5. Transferring SPL token
+
+#### Day 3: Rug Day!
+
+1. Capstone project discussions
+   1. Overview on the projects/topics and timelines
+   2. Emphasis on application of anchor/solana concepts to build a functional, market ready environment
+2. Created image URI and metadata URI for the project
+3. Minted unique rug NFTs using metaplex
