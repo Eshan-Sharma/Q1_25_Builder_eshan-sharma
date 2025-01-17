@@ -21,7 +21,9 @@ umi.use(signerIdentity(signer));
     const image = await readFile("./generug.png");
     const genericImg = createGenericFile(image, "generug.png");
     const [myUri] = await umi.uploader.upload([genericImg]);
+    console.log(`Image uri is: ${myUri}`);
   } catch (error) {
     console.error(`Oops, something went wrong: ${error}`);
   }
 })();
+//Image uri is: https://gateway.irys.xyz/4TMwpGBp2LsVxQCzxHTw7j9TH4LTmPMV3xpJuuHd7PJR
