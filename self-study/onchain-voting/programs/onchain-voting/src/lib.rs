@@ -19,7 +19,7 @@ pub mod on_chain {
                 msg!("Voted for GN!");
                 ctx.accounts.vote_account.gn += 1;
             }
-        }
+        };
         Ok(())
     }
 }
@@ -53,3 +53,4 @@ pub enum VoteType {
     GM,
     GN,
 }
+//Program Id: 9xVuhZUaMxaNAzhgzFKKdjdQLSNq59ZVgiX3iNMiCXSp
