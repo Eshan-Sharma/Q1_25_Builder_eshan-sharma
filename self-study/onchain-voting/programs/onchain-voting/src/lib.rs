@@ -10,6 +10,27 @@ pub mod on_chain {
         Ok(())
     }
 }
+#[program]
+pub fn give_vote(ctx: Context<GiveVote>, vote_type: VoteType) -> Result<()> {
+    match vote_type {
+        VoteType::GM => {
+            msg!("Voted for GM!");
+            ctx.accounts.vote_account.gm += 1;
+        }
+        VoteType::GN => {
+            msg!("Voted for GN!");
+            ctx.accounts.vote_account.gn += 1;
+        }
+    }
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct GiveVote<'info> {
+    #[account(mut)]
+    pub vote_account: Account<'info, VoteBank>,
+    pub signer: Signer<'info>,
+}
 
 #[derive(Accounts)]
 pub struct InitVote<'info> {
@@ -26,4 +47,17 @@ pub struct VoteBank {
     is_open_to_vote: bool,
     gm: u64,
     gn: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub enum VoteType {
+    GM,
+    GN,
+}
+
+#[derive(Accounts)]
+pub struct GiveVote<'into> {
+    #[account(mut)]
+    pub vote_account: Account<'into, VoteBank>,
+    pub signer: Signer<'info>,
 }
