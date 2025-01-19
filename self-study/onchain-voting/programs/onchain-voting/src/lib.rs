@@ -9,20 +9,19 @@ pub mod on_chain {
         ctx.accounts.vote_account.is_open_to_vote = true;
         Ok(())
     }
-}
-#[program]
-pub fn give_vote(ctx: Context<GiveVote>, vote_type: VoteType) -> Result<()> {
-    match vote_type {
-        VoteType::GM => {
-            msg!("Voted for GM!");
-            ctx.accounts.vote_account.gm += 1;
+    pub fn give_vote(ctx: Context<GiveVote>, vote_type: VoteType) -> Result<()> {
+        match vote_type {
+            VoteType::GM => {
+                msg!("Voted for GM!");
+                ctx.accounts.vote_account.gm += 1;
+            }
+            VoteType::GN => {
+                msg!("Voted for GN!");
+                ctx.accounts.vote_account.gn += 1;
+            }
         }
-        VoteType::GN => {
-            msg!("Voted for GN!");
-            ctx.accounts.vote_account.gn += 1;
-        }
+        Ok(())
     }
-    Ok(())
 }
 
 #[derive(Accounts)]
@@ -53,11 +52,4 @@ pub struct VoteBank {
 pub enum VoteType {
     GM,
     GN,
-}
-
-#[derive(Accounts)]
-pub struct GiveVote<'into> {
-    #[account(mut)]
-    pub vote_account: Account<'into, VoteBank>,
-    pub signer: Signer<'info>,
 }
