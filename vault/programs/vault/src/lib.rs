@@ -13,4 +13,19 @@ pub mod vault {
 }
 
 #[derive(Accounts)]
-pub struct Initialize {}
+pub struct Initialize<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(init,payer=signer,space=8+VaultState::INIT_SPACE,seeds=[b"state",signer.key().as_ref()],bump)]
+    pub vault_state: Account<'info, VaultState>,
+    #[account(seeds=[b"vault",vault_state.key().as_ref()],bump)]
+    pub vault: SystemAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct VaultState {
+    pub vault_bump: u8,
+    pub state_bump: u8,
+}
