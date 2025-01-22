@@ -53,3 +53,13 @@
    2. Emphasis on application of anchor/solana concepts to build a functional, market ready environment
 2. Created image URI and metadata URI for the project
 3. Minted unique rug NFTs using metaplex
+
+### Week 2:
+
+#### Day 1: Vault program
+
+1. Vault program initialization
+2. Vault deposit function : using CPI context to transfer funds from signer to vault
+3. Vault withdraw function: using CPI context to transfer funds back from vault to signer
+4. Vault close function: close the vault and transfer all funds to signer
+5. Used CPI context
