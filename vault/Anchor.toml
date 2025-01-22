@@ -11,8 +11,8 @@ vault = "9obV7p79e8z5p3FrnGiW13mhYR5eJbWB1GpbkRyjKkW3"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "../Rust-prereq-task-2/src/turbine-wallet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
