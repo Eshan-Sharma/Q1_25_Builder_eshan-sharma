@@ -8,7 +8,7 @@ pub mod vault {
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
+        ctx.accounts.initialize(&ctx.bumps)
     }
 }
 
@@ -21,6 +21,12 @@ pub struct Initialize<'info> {
     #[account(seeds=[b"vault",vault_state.key().as_ref()],bump)]
     pub vault: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
+}
+impl<'info> Initialize<'info> {
+    pub fn initialize(&mut self, bumps: &InitializeBumps) -> Result<()> {
+        self.vault_state.vault_bump = bumps.vault;
+        self.vault_state.state_bump = bumps.vault_state;
+    }
 }
 
 #[account]
