@@ -63,3 +63,10 @@
 3. Vault withdraw function: using CPI context to transfer funds back from vault to signer
 4. Vault close function: close the vault and transfer all funds to signer
 5. Used CPI context
+
+#### Day 2: Escrow program
+
+1. Maker Function: Implemented a maker function to send Token A (from mint_a) to the vault.
+2. Taker Function: Developed a taker function to transfer Token B (from mint_b) to mint_a and retrieve Token A from the vault.
+3. Refund Function: Created a refund mechanism to return Token A from the vault in case of cancellation.
+4. Token Transfers: Facilitated secure transfers of Token A to the vault and Token B to complete the escrow exchange process.
