@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::metadata::{Metadata,MasterEditionAccount,MetadataAccount};
 use anchor_spl::token_interface::{transfer_checked,TransferChecked,Mint,TokenAccount,TokenInterface};
 
 use crate::state::Listing;
