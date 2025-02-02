@@ -1,12 +1,9 @@
 use anchor_lang::prelude::*;
 
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::metadata::Metadata;
-use anchor_spl::metadata::MetadataAccount;
-use anchor_spl::metadata::MasterEditionAccount;
-use anchor_spl::token_interface::Mint;
-use anchor_spl::token_interface::TokenAccount;
-use anchor_spl::token_interface::TokenInterface;
+use anchor_spl::metadata::{Metadata,MasterEditionAccount,MetadataAccount};
+use anchor_spl::token_interface::{transfer_checked,TransferChecked,Mint,TokenAccount,TokenInterface};
+
 use crate::state::Listing;
 use crate::state::Marketplace;
 
@@ -61,4 +58,29 @@ pub struct List<'info> {
     )]
     pub master_edition:Account<'info, MasterEditionAccount>,
     pub metadata_program:Program<'info, Metadata>
+}
+
+impl<'info> List<'info>{
+    pub fn create_listing(&mut self, price:u64, bumps:&ListBumps)->Result<()>{
+        self.listing.set_inner(Listing{
+            maker:self.maker.key(),
+            mint:self.maker_mint.key(),
+            price,
+            bump:bumps.listing,
+        });
+        Ok(())
+    }
+
+    pub fn deposit_nft(&mut self)->Result<()>{
+        let cpi_program = self.token_program.to_account_info();
+        let cpi_account = TransferChecked{
+            from:self.maker_ata.to_account_info(),
+            mint:self.maker_mint.to_account_info(),
+            to:self.vault.to_account_info(),
+            authority:self.maker.to_account_info()
+        };
+        let ctx_cpi = CpiContext::new(cpi_program,cpi_account);
+        transfer_checked(ctx_cpi, 1, self.maker_mint.decimals)?;
+        Ok(())
+    }
 }
