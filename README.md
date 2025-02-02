@@ -71,3 +71,17 @@
 3. Taker Function: Developed a taker function to transfer Token B (from mint_b) to mint_a and retrieve Token A from the vault.
 4. Refund Function: Created a refund mechanism to return Token A from the vault in case of cancellation.
 5. Token Transfers: Facilitated secure transfers of Token A to the vault and Token B to complete the escrow exchange process.
+
+### Week 3:
+
+#### Day 1 & 2: Marketplace Program
+
+1. Initialize Marketplace: Set up the marketplace program to handle NFT and token listings.
+2. Listing Function: Implemented a function to list NFTs and tokens for sale.
+3. Delisting Function: Developed a function to remove listed items from the marketplace.
+4. Purchase Function: Enabled buyers to purchase listed assets securely through the program.
+
+#### Day 3: Automatic Market Maker (AMM) Program
+
+1. Constant Product Curve: Implemented the constant product formula (x \* y = k) to maintain liquidity balance.
+2. Learnt about Liquidity Pools: Create liquidity pools to facilitate decentralized token swaps.
