@@ -1,11 +1,10 @@
 use anchor_lang::prelude::*;
 
-use crate::{errors::AmmError, state::Config};
+use crate::state::Config;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{Mint, MintTo, Token, TokenAccount, Transfer}, token_2022::spl_token_2022::solana_zk_token_sdk::instruction::transfer,
+    token::{transfer, Mint, Token, TokenAccount, Transfer},
 };
-use constant_product_curve::ConstantProduct;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -22,10 +21,9 @@ pub struct Deposit<'info> {
     pub config: Account<'info, Config>,
 
     #[account(
+        mut,
         seeds=[b"lp",config.key().as_ref()],
         bump=config.lp_bump,
-        mint::decimals=6,
-        mint::authority=config
     )]
     pub mint_lp: Account<'info, Config>,
     #[account(
@@ -62,21 +60,26 @@ pub struct Deposit<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
-impl<'info> Deposit<'info>{
-    pub fn deposit_token(&mut self,is_x:bool,amount:u64)->Result<()>{
-        let (from,to)=match is_x {
-            true=>(self.lp_provider_mint_x_ata.to_account_info(),self.vault_x.to_account_info()),
-            false=>(self.lp_provider_mint_y_ata.to_account_info(),self.vault_y.to_account_info())
-            
+impl<'info> Deposit<'info> {
+    pub fn deposit_token(&mut self, is_x: bool, amount: u64) -> Result<()> {
+        let (from, to) = match is_x {
+            true => (
+                self.lp_provider_mint_x_ata.to_account_info(),
+                self.vault_x.to_account_info(),
+            ),
+            false => (
+                self.lp_provider_mint_y_ata.to_account_info(),
+                self.vault_y.to_account_info(),
+            ),
         };
         let cpi_program = self.token_program.to_account_info();
-        let cpi_account:Transfer{
-             from:se ,
-     to,
-     authority: self.lp_provider.to_account_info()
-        }
-let cpi_ctx=CpiContext::new(cpi_program,cpi_account);
-transfer(cpi_ctx,amount)?;
+        let cpi_account = Transfer {
+            from,
+            to,
+            authority: self.lp_provider.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_account);
+        transfer(cpi_ctx, amount)?;
         Ok(())
     }
 }
