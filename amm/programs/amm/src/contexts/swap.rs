@@ -66,6 +66,29 @@ pub struct Swap<'info> {
 }
 
 impl<'info> Swap<'info> {
+    pub fn swap(&mut self, is_x: bool, amount: u64, min: u64) -> Result<()> {
+        require!(self.config.locked == false, AmmError::PoolLocked);
+        require!(amount > 0, AmmError::InvalidAmount);
+
+        let mut curve = ConstantProduct::init(
+            self.vault_x.amount,
+            self.vault_y.amount,
+            self.vault_x.amount,
+            self.config.fee,
+            None,
+        )
+        .map_err(AmmError::from)?;
+        let p = match is_x {
+            true => LiquidityPair::X,
+            false => LiquidityPair::Y,
+        };
+        let res = curve.swap(p, amount, min).map_err(AmmError::from)?;
+        require!(res.deposit != 0, AmmError::InvalidAmount);
+        require!(res.withdraw != 0, AmmError::InvalidAmount);
+        self.deposit_token(is_x, res.deposit)?;
+        self.withdraw_token(is_x, res.withdraw)?;
+        Ok(())
+    }
     fn deposit_token(&mut self, is_x: bool, amount: u64) -> Result<()> {
         let (from, to) = match is_x {
             true => (
