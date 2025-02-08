@@ -23,4 +23,7 @@ pub mod amm {
         ctx.accounts.deposit(amount, max_x, max_y)?;
         Ok(())
     }
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64, min_x: u64, min_y: u64) -> Result<()> {
+        ctx.accounts.withdraw(amount, min_x, min_y)
+    }
 }
