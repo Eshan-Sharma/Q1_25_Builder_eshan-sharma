@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
-
-use crate::state::Config;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{transfer, Mint, Token, TokenAccount, Transfer},
+    token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer},
 };
+use constant_product_curve::ConstantProduct;
+
+use crate::{errors::AmmError, state::Config};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -61,25 +62,71 @@ pub struct Deposit<'info> {
 }
 
 impl<'info> Deposit<'info> {
-    pub fn deposit_token(&mut self, is_x: bool, amount: u64) -> Result<()> {
+    pub fn deposit(&mut self, amount: u64, max_x: u64, max_y: u64) -> Result<()> {
+        require!(self.config.locked == false, AmmError::PoolLocked);
+        require!(amount != 0, AmmError::InvalidAmount);
+        let (x, y) = match self.lp_provider_mint_lp_ata.amount == 0
+            && self.vault_x.amount == 0
+            && self.vault_y.amount == 0
+        {
+            true => (max_x, max_y),
+            false => {
+                let amounts = ConstantProduct::xy_deposit_amounts_from_l(
+                    self.vault_x.amount,
+                    self.vault_y.amount,
+                    self.lp_provider_mint_lp_ata.amount,
+                    amount,
+                    6,
+                )
+                .unwrap();
+                (amounts.x, amounts.y)
+            }
+        };
+        require!(x <= max_x && y <= max_y, AmmError::SlippageExceeded);
+        self.deposit_token(true, x)?;
+        self.deposit_token(false, y)?;
+        self.mint_lp_token(amount)?;
+        Ok(())
+    }
+
+    fn deposit_token(&self, is_x: bool, amount: u64) -> Result<()> {
         let (from, to) = match is_x {
             true => (
                 self.lp_provider_mint_x_ata.to_account_info(),
-                self.vault_x.to_account_info(),
+                self.lp_provider_mint_y_ata.to_account_info(),
             ),
             false => (
                 self.lp_provider_mint_y_ata.to_account_info(),
-                self.vault_y.to_account_info(),
+                self.lp_provider_mint_x_ata.to_account_info(),
             ),
         };
         let cpi_program = self.token_program.to_account_info();
-        let cpi_account = Transfer {
+        let cpi_accounts = Transfer {
             from,
             to,
             authority: self.lp_provider.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_account);
-        transfer(cpi_ctx, amount)?;
+        let ctx_cpi = CpiContext::new(cpi_program, cpi_accounts);
+        transfer(ctx_cpi, amount)?;
+        Ok(())
+    }
+    fn mint_lp_token(&self, amount: u64) -> Result<()> {
+        let cpi_program = self.token_program.to_account_info();
+        let cpi_accounts = MintTo {
+            mint: self.mint_lp.to_account_info(),
+            to: self.lp_provider_mint_lp_ata.to_account_info(),
+            authority: self.config.to_account_info(),
+        };
+        let seeds = &[
+            &b"config"[..],
+            &self.config.seed.to_le_bytes(),
+            &[self.config.config_bump],
+        ];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+        mint_to(ctx, amount)?;
         Ok(())
     }
 }
