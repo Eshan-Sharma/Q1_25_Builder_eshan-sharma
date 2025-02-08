@@ -67,6 +67,25 @@ pub struct Withdraw<'info> {
 
 impl<'info> Withdraw<'info> {
     pub fn withdraw(&mut self, amount: u64, min_x: u64, min_y: u64) -> Result<()> {
+        require!(self.config.locked == false, AmmError::PoolLocked);
+        require!(amount != 0, AmmError::InvalidAmount);
+        require!(min_x != 0 || min_y != 0, AmmError::InvalidAmount);
+        let amounts = ConstantProduct::xy_deposit_amounts_from_l(
+            self.vault_x.amount,
+            self.vault_y.amount,
+            self.lp_provider_mint_lp_ata.amount,
+            amount,
+            6,
+        )
+        .map_err(AmmError::from)?;
+        require!(
+            min_x <= amounts.x && min_y <= amounts.y,
+            AmmError::SlippageExceeded
+        );
+
+        self.withdraw_token(true, min_x)?;
+        self.withdraw_token(false, min_y)?;
+        self.burn_lp_token(amount)?;
         Ok(())
     }
 
