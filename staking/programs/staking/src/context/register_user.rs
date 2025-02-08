@@ -17,7 +17,7 @@ pub struct RegisterUser<'info> {
 }
 
 impl<'info> RegisterUser<'info> {
-    pub fn init(&mut self, bumps: RegisterUserBumps) -> Result<()> {
+    pub fn init(&mut self, bumps: &RegisterUserBumps) -> Result<()> {
         self.user_account.set_inner(UserAccount {
             points: 0,
             amount_staked: 0,
