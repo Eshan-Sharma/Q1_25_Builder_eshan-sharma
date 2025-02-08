@@ -54,7 +54,7 @@ pub struct Initialize<'info> {
     pub config:Account<'info, Config>
 }
 impl<'info> Initialize<'info>{
-    pub fn init(&mut self, seed:u64,fee:u16,authority:Option<Pubkey>,bumps:&InitializeBumps)->Result<()>{
+    pub fn init(&mut self, seed:u64,fee:u16,authority:Option<Pubkey>,bumps:InitializeBumps)->Result<()>{
         self.config.set_inner(Config { 
             seed,
             authority, 
