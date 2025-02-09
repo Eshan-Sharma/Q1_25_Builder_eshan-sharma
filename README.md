@@ -85,3 +85,58 @@
 
 1. Constant Product Curve: Implemented the constant product formula (x \* y = k) to maintain liquidity balance.
 2. Learnt about Liquidity Pools: Create liquidity pools to facilitate decentralized token swaps.
+
+### Week 4:
+
+#### Day 1: Automatic Market Maker (AMM) Program
+
+1. Initialization
+
+- Set up the AMM program with a provided seed, an optional authority, and a fee parameter.
+- Uses Anchor's context and bump seed management to ensure secure account initialization.
+
+2. Deposit Function
+
+- Allows users to deposit tokens into the liquidity pool, with constraints on maximum values (max_x and max_y).
+- Utilizes a CPI (Cross-Program Invocation) to handle token transfers securely.
+
+3. Withdraw Function
+
+- Enables users to withdraw tokens from the liquidity pool by enforcing minimum constraints (min_x and min_y).
+- Incorporates signer seeds for secure withdrawal operations.
+
+#### Day 2: NFT Staking Program
+
+1. Configuration Initialization
+
+- Initializes staking configuration with parameters such as points per stake, maximum state, and a freeze period.
+- Ensures that the staking mechanism is properly configured from the start.
+
+2. User Registration
+
+- Provides a mechanism to register users so they can participate in the staking process.
+
+3. Stake Function
+
+- Allows users to stake their NFTs, thereby participating in the staking rewards program.
+- Utilizes Anchor's context for secure state management and staking logic.
+
+#### Day 3: Dice game Program
+
+1. Initialization
+
+- Sets up the dice game environment by initializing the game state with a starting amount.
+
+2. Place Bet Function
+
+- Enables users to place bets by specifying an amount, a unique seed, and a roll prediction.
+- Handles both the creation of the bet record and the deposit of the wagered amount.
+
+3. Resolve Bet Function
+
+- Verifies the bet outcome using an ed25519 signature to ensure integrity and authenticity.
+- Processes the bet resolution based on the verified signature and game logic.
+
+4. Refund Bet Function
+
+- Provides a mechanism to refund the bet and close the bet account if necessary (e.g., in case of cancellation or error).
