@@ -22,4 +22,8 @@ pub mod dice {
         ctx.accounts.resolve_bets(&ctx.bumps, &sig)?;
         Ok(())
     }
+    pub fn refund_bet(ctx: Context<RefundBet>) -> Result<()> {
+        ctx.accounts.refund_and_close_bet(&ctx.bumps)?;
+        Ok(())
+    }
 }
