@@ -6,7 +6,6 @@ pub struct Marketplace {
     pub fee: u16,
     pub bump: u8,
     pub treasury_bump: u8,
-    pub reward_bump: u8,
     pub name: String, //32 byte limit set
 }
 
