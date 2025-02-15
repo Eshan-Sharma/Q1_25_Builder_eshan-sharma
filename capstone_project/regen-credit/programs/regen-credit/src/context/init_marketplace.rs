@@ -22,7 +22,12 @@ pub struct Initialize<'info> {
 }
 
 impl<'info> Initialize<'info> {
-    pub fn init(&mut self, name: String, bumps: &InitializeBumps, fee: u16) -> Result<()> {
+    pub fn init_marketplace(
+        &mut self,
+        name: String,
+        bumps: &InitializeBumps,
+        fee: u16,
+    ) -> Result<()> {
         self.marketplace.set_inner(Marketplace {
             admin: self.admin.key(),
             fee,
