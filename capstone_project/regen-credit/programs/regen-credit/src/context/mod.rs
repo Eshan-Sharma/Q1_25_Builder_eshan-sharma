@@ -4,3 +4,7 @@ pub mod init_marketplace;
 pub use init_marketplace::*;
 pub mod list;
 pub use list::*;
+pub mod purchase;
+pub use purchase::*;
+pub mod errors;
+pub use errors::*;
