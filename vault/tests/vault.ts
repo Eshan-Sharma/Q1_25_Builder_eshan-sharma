@@ -31,4 +31,19 @@ describe("vault", () => {
     const balance = await provider.connection.getBalance(signer.publicKey);
     assert.equal(balance, 2 * LAMPORTS_PER_SOL, "Signer should have 2 SOL");
   });
+
+  it("Initialize vault state and pda", async () => {
+    [vaultStatePda, stateBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("state"), signer.publicKey.toBuffer()],
+      program.programId
+    );
+
+    [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), vaultStatePda.toBuffer()],
+      program.programId
+    );
+
+    console.log("Vault State PDA:", vaultStatePda.toBase58());
+    console.log("Vault PDA:", vaultPda.toBase58());
+  });
 });
