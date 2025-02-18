@@ -20,6 +20,7 @@ describe("vault", () => {
   let vaultBump: number;
   let stateBump: number;
   let depositAmount = 1 * LAMPORTS_PER_SOL;
+  let withdrawAmount = 0.5 * LAMPORTS_PER_SOL;
 
   it("Fund the signer account", async () => {
     // Add your test here.
@@ -74,5 +75,82 @@ describe("vault", () => {
       depositAmount,
       "Vault should have deposited 1 SOL"
     );
+  });
+
+  it("Performs a withdraw", async () => {
+    [vaultStatePda, stateBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("state"), signer.publicKey.toBuffer()],
+      program.programId
+    );
+
+    [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), vaultStatePda.toBuffer()],
+      program.programId
+    );
+
+    const initialBalance = await provider.connection.getBalance(
+      signer.publicKey
+    );
+    const initialVaultBalance = await provider.connection.getBalance(vaultPda);
+
+    const blockhashContext = await provider.connection.getLatestBlockhash();
+
+    const withdrawIx = await program.methods
+      .withdraw(new anchor.BN(withdrawAmount)) // Specify the amount you want to withdraw
+      .accountsPartial({
+        signer: signer.publicKey,
+        vaultState: vaultStatePda,
+        vault: vaultPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    const message = new anchor.web3.Transaction({
+      feePayer: signer.publicKey,
+      blockhash: blockhashContext.blockhash,
+      lastValidBlockHeight: blockhashContext.lastValidBlockHeight,
+    })
+      .add(withdrawIx)
+      .compileMessage();
+
+    const feeCalculator = await provider.connection.getFeeForMessage(message);
+    const txFee = feeCalculator.value || 0;
+
+    try {
+      const withdrawIx = await program.methods
+        .withdraw(new anchor.BN(withdrawAmount))
+        .accountsPartial({
+          signer: signer.publicKey,
+          vaultState: vaultStatePda,
+          vault: vaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const blockhashContext = await provider.connection.getLatestBlockhash();
+
+      const tx = new anchor.web3.Transaction({
+        feePayer: signer.publicKey,
+        blockhash: blockhashContext.blockhash,
+        lastValidBlockHeight: blockhashContext.lastValidBlockHeight,
+      }).add(withdrawIx);
+
+      const sig = await anchor.web3.sendAndConfirmTransaction(
+        provider.connection,
+        tx,
+        [signer]
+      );
+      const finalBalance = await provider.connection.getBalance(
+        signer.publicKey
+      );
+      const finalVaultBalance = await provider.connection.getBalance(vaultPda);
+      console.log("Transaction Signature:", sig);
+      assert(finalBalance > initialBalance);
+      assert(finalVaultBalance < initialVaultBalance);
+    } catch (e) {
+      console.log(e.message);
+      console.log(e.logs);
+      assert.fail("Failed to withdraw funds");
+    }
   });
 });
