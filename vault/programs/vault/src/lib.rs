@@ -28,7 +28,13 @@ pub mod vault {
 pub struct Initialize<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(init,payer=signer,space=8+VaultState::INIT_SPACE,seeds=[b"state",signer.key().as_ref()],bump)]
+    #[account(
+        init,
+        payer=signer,
+        space=8+VaultState::INIT_SPACE,
+        seeds=[b"state",signer.key().as_ref()],
+        bump
+    )]
     pub vault_state: Account<'info, VaultState>,
     #[account(seeds=[b"vault",vault_state.key().as_ref()],bump)]
     pub vault: SystemAccount<'info>,
@@ -53,9 +59,13 @@ pub struct VaultState {
 pub struct Deposit<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(seeds=[b"state",signer.key().as_ref()],bump=vault_state.state_bump)]
+    #[account(
+        mut,
+        seeds=[b"state",signer.key().as_ref()],
+        bump=vault_state.state_bump
+    )]
     pub vault_state: Account<'info, VaultState>,
-    #[account(seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
+    #[account(mut,seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
     pub vault: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -77,9 +87,13 @@ impl<'info> Deposit<'info> {
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(seeds=[b"state",signer.key().as_ref()],bump=vault_state.state_bump)]
+    #[account(
+        mut,
+        seeds=[b"state",signer.key().as_ref()],
+        bump=vault_state.state_bump
+    )]
     pub vault_state: Account<'info, VaultState>,
-    #[account(seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
+    #[account(mut,seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
     pub vault: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -107,9 +121,14 @@ impl<'info> Withdraw<'info> {
 pub struct Close<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(seeds=[b"state",signer.key().as_ref()],bump=vault_state.state_bump)]
+    #[account(
+        mut,
+        seeds=[b"state",signer.key().as_ref()],
+        bump=vault_state.state_bump,
+        close = signer
+    )]
     pub vault_state: Account<'info, VaultState>,
-    #[account(seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
+    #[account(mut,seeds=[b"vault",vault_state.key().as_ref()],bump=vault_state.vault_bump)]
     pub vault: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
