@@ -46,4 +46,33 @@ describe("vault", () => {
     console.log("Vault State PDA:", vaultStatePda.toBase58());
     console.log("Vault PDA:", vaultPda.toBase58());
   });
+
+  it("Performs a deposit", async () => {
+    await program.methods
+      .initialize()
+      .accountsPartial({
+        signer: signer.publicKey,
+        vaultState: vaultStatePda,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([signer])
+      .rpc();
+
+    await program.methods
+      .deposit(new anchor.BN(depositAmount))
+      .accountsPartial({
+        signer: signer.publicKey,
+        vaultState: vaultStatePda,
+        vault: vaultPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([signer])
+      .rpc();
+    const vaultBalance = await provider.connection.getBalance(vaultPda);
+    assert.equal(
+      vaultBalance,
+      depositAmount,
+      "Vault should have deposited 1 SOL"
+    );
+  });
 });
