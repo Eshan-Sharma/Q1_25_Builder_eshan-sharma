@@ -138,7 +138,8 @@ describe("vault", () => {
       const sig = await anchor.web3.sendAndConfirmTransaction(
         provider.connection,
         tx,
-        [signer]
+        [signer],
+        { skipPreflight: true }
       );
       const finalBalance = await provider.connection.getBalance(
         signer.publicKey
@@ -151,6 +152,77 @@ describe("vault", () => {
       console.log(e.message);
       console.log(e.logs);
       assert.fail("Failed to withdraw funds");
+    }
+  });
+  it("Performs a close", async () => {
+    [vaultStatePda, stateBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("state"), signer.publicKey.toBuffer()],
+      program.programId
+    );
+
+    [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), vaultStatePda.toBuffer()],
+      program.programId
+    );
+    const initialBalance = await provider.connection.getBalance(
+      signer.publicKey
+    );
+    const blockhashContext = await provider.connection.getLatestBlockhash();
+
+    const closeIx = await program.methods
+      .close()
+      .accountsPartial({
+        signer: signer.publicKey,
+        vaultState: vaultStatePda,
+        vault: vaultPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    const message = new anchor.web3.Transaction({
+      feePayer: signer.publicKey,
+      blockhash: blockhashContext.blockhash,
+      lastValidBlockHeight: blockhashContext.lastValidBlockHeight,
+    })
+      .add(closeIx)
+      .compileMessage();
+
+    try {
+      const closeIx = await program.methods
+        .close()
+        .accountsPartial({
+          signer: signer.publicKey,
+          vaultState: vaultStatePda,
+          vault: vaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const blockhashContext = await provider.connection.getLatestBlockhash();
+
+      const tx = new anchor.web3.Transaction({
+        feePayer: signer.publicKey,
+        blockhash: blockhashContext.blockhash,
+        lastValidBlockHeight: blockhashContext.lastValidBlockHeight,
+      }).add(closeIx);
+
+      const sig = await anchor.web3.sendAndConfirmTransaction(
+        provider.connection,
+        tx,
+        [signer],
+        { skipPreflight: true }
+      );
+      const finalBalance = await provider.connection.getBalance(
+        signer.publicKey
+      );
+      const finalVaultBalance = await provider.connection.getBalance(vaultPda);
+      console.log("Transaction Signature:", sig);
+      assert(finalBalance > initialBalance);
+      assert.equal(finalVaultBalance, 0, "Vault is empty");
+    } catch (e) {
+      console.log(e.message);
+      console.log(e.logs);
+      assert.fail("Failed to close vault");
     }
   });
 });
