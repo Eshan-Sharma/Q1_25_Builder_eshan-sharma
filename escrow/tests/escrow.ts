@@ -7,6 +7,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAccount,
   createMint,
+  getAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -112,6 +113,8 @@ describe("escrow", () => {
       })
       .signers([maker])
       .rpc();
+    let vaultAmount = await getAccount(provider.connection, vault);
+    assert.equal(vaultAmount.amount, BigInt(depositAmount.toString()));
   });
   // it("Perform Take", async () => {});
   // it("Perform Refund", async () => {});
