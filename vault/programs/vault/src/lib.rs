@@ -107,7 +107,8 @@ impl<'info> Withdraw<'info> {
         };
 
         let seeds = &[
-            self.vault_state.to_account_info().key.as_ref(),
+            &b"vault"[..],
+            &self.vault_state.to_account_info().key.as_ref(),
             &[self.vault_state.vault_bump],
         ];
         let signer_seeds = &[&seeds[..]];
@@ -142,7 +143,8 @@ impl<'info> Close<'info> {
         };
 
         let seeds = &[
-            self.vault_state.to_account_info().key.as_ref(),
+            &b"vault"[..],
+            &self.vault_state.to_account_info().key.as_ref(),
             &[self.vault_state.vault_bump],
         ];
         let signer_seeds = &[&seeds[..]];
