@@ -25,6 +25,8 @@ describe("escrow", () => {
   let mintB;
   let makerMintAtaA;
   let takerMintAtaB;
+  let takerMintAtaA;
+  let makerMintAtaB;
   let escrow;
   let vault;
   let receiveAmount = new anchor.BN(50);
@@ -66,6 +68,18 @@ describe("escrow", () => {
       taker,
       mintB,
       taker.publicKey
+    );
+    takerMintAtaA = await createAccount(
+      provider.connection,
+      taker,
+      mintA,
+      taker.publicKey
+    );
+    makerMintAtaB = await createAccount(
+      provider.connection,
+      maker,
+      mintB,
+      maker.publicKey
     );
     await mintTo(
       provider.connection,
@@ -116,6 +130,24 @@ describe("escrow", () => {
     let vaultAmount = await getAccount(provider.connection, vault);
     assert.equal(vaultAmount.amount, BigInt(depositAmount.toString()));
   });
-  // it("Perform Take", async () => {});
-  // it("Perform Refund", async () => {});
+  it("Perform Take", async () => {
+    await program.methods
+      .take()
+      .accountsPartial({
+        taker: taker.publicKey,
+        maker: maker.publicKey,
+        mintA,
+        mintB,
+        takerMintAAta: takerMintAtaA.publicKey,
+        takerMintBAta: takerMintAtaB.publicKey,
+        makerMintBAta: makerMintAtaB.publicKey,
+        escrow,
+        vault,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      })
+      .signers([taker])
+      .rpc();
+  });
 });

@@ -9,11 +9,10 @@ use anchor_spl::token_interface::TransferChecked;
 use anchor_spl::token_interface::transfer_checked;
 
 #[derive(Accounts)]
-#[instruction(seed:u64)]
 pub struct Take<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
-    #[account(address=escrow.maker)]
+    #[account(mut,address=escrow.maker)]
     pub maker:SystemAccount<'info>,
 
     #[account(address=escrow.mint_a)]
@@ -45,7 +44,7 @@ pub struct Take<'info> {
     #[account( 
         mut, 
         close=taker,
-        seeds=[b"escrow",escrow.maker.to_bytes().as_ref(),seed.to_le_bytes().as_ref()],
+        seeds=[b"escrow",escrow.maker.to_bytes().as_ref(),escrow.seed.to_le_bytes().as_ref()],
         bump=escrow.bump
     )]
     pub escrow: Account<'info, Escrow>,
