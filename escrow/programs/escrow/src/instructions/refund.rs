@@ -10,11 +10,10 @@ use anchor_spl::token_interface::close_account;
 use crate::state::Escrow;
 
 #[derive(Accounts)]
-#[instruction(seed:u64)]
 pub struct Refund<'info> {
     #[account(mut,address=escrow.maker)]
     pub maker: Signer<'info>,
-    #[account(address=escrow.mint_a)]
+    #[account(mut,address=escrow.mint_a)]
     pub mint_a: InterfaceAccount<'info, Mint>,
     #[account(address=escrow.mint_b)]
     pub mint_b: InterfaceAccount<'info, Mint>,

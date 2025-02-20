@@ -150,4 +150,21 @@ describe("escrow", () => {
       .signers([taker])
       .rpc();
   });
+  it("Perform Refund", async () => {
+    await program.methods
+      .refund()
+      .accountsPartial({
+        maker: maker.publicKey,
+        mintA,
+        mintB,
+        makerMintAAta: makerMintAtaA.publicKey,
+        escrow,
+        vault,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      })
+      .signers([maker])
+      .rpc();
+  });
 });
