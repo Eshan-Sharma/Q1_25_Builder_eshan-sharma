@@ -22,7 +22,7 @@ pub struct Refund<'info> {
         associated_token::mint=mint_a,
         associated_token::authority=maker
     )]
-    pub maker_mint_a_ata: InterfaceAccount<'info, TokenAccount>,
+    pub maker_mint_a_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
