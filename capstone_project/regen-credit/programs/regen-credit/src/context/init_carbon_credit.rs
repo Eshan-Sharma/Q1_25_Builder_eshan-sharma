@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 use crate::CarbonCredit;
 use crate::Country;
 use crate::EnergyUnits;
+use crate::SourceType;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct InitializeCarbonCredit<'info> {
@@ -36,7 +38,7 @@ impl<'info> InitializeCarbonCredit<'info> {
             country,
             value,
             units,
-            source_type: crate::SourceType::Solar,
+            source_type: SourceType::Solar,
             original_carbon_credits,
             remaining_carbon_credits,
             grid_emission_factor,
@@ -52,7 +54,7 @@ impl<'info> InitializeCarbonCredit<'info> {
     fn calculate_carbon_credits(&self, country: Country, value: u32) -> (u16, u32, u8) {
         let (grid_emission_factor, grid_emission_factor_decimals) =
             self.get_grid_emission_factor(country);
-        let original_carbon_credits = (value * grid_emission_factor) as u16;
+        let original_carbon_credits = u16::try_from(value.checked_mul(grid_emission_factor).ok_or(ErrorCode::CalculationOverflow).unwrap()).unwrap();//(value * grid_emission_factor) as u16;
 
         (
             original_carbon_credits,
