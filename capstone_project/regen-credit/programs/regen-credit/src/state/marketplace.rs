@@ -6,9 +6,14 @@ pub struct Marketplace {
     pub fee: u16,
     pub bump: u8,
     pub treasury_bump: u8,
-    pub name: String, //32 byte limit set
+    pub name: String,
 }
 
 impl Space for Marketplace {
-    const INIT_SPACE: usize = 8 + (32 + 2 + 1 + 1 + 1 + (4 + 32));
+    const INIT_SPACE: usize = 8 + //Anchor Discriminator 
+        32 + //PubKey
+        2 + //u16
+        1 + //u8
+        1 + //u8
+        (4 + 32); //String +  32 Byte limit
 }
