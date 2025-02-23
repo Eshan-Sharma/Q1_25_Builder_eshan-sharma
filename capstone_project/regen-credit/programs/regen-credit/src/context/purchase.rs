@@ -52,14 +52,23 @@ pub struct PurchaseCarbonCredits<'info> {
     pub system_program: Program<'info, System>,
 }
 impl<'info> PurchaseCarbonCredits<'info> {
-    pub fn send_sol(&mut self, number_of_credits: u16) -> Result<()> {
-        // Validate Purchase
+    pub fn reduce_remaining_credits(&mut self, number_of_credits: u16) -> Result<()> {
         require!(
             self.carbon_credit.remaining_carbon_credits >= number_of_credits,
             ErrorCode::InsufficientCredits
         );
+        // Update Remaining Carbon Credits
+        self.carbon_credit.remaining_carbon_credits = self
+            .carbon_credit
+            .remaining_carbon_credits
+            .checked_sub(number_of_credits)
+            .ok_or(ErrorCode::CalculationUnderflow)?;
+        Ok(())
+    }
+
+    pub fn price_and_fee(&mut self, number_of_credits: u16) -> Result<()> {
         // Calculate the total amount in USD
-        let amount_usd = self
+        let total_amount_for_credits = self
             .carbon_credit
             .price_per_carbon_credit
             .checked_mul(number_of_credits)
@@ -67,7 +76,7 @@ impl<'info> PurchaseCarbonCredits<'info> {
         // Get the current SOL price in USD
         let sol_price = self.get_sol_price_feed();
 
-        let total_amount_lamports = u64::try_from(amount_usd.unwrap())
+        let total_amount_for_credits_in_lamports = u64::try_from(total_amount_for_credits.unwrap())
             .unwrap() //amount_usd
             .checked_div(sol_price)
             .ok_or(ErrorCode::CalculationOverflow)
@@ -77,16 +86,13 @@ impl<'info> PurchaseCarbonCredits<'info> {
             .unwrap();
 
         // Calculate Marketplace Fee (e.g., 2% Fee)
-        let fee = (total_amount_lamports as u128)
-            .checked_mul(self.marketplace.fee as u128)
+        let fee_percentage = self.marketplace.fee;
+        let fee = (total_amount_for_credits_in_lamports as u128)
+            .checked_mul(fee_percentage as u128)
             .ok_or(ErrorCode::CalculationOverflow)?
             .checked_div(100)
             .ok_or(ErrorCode::CalculationOverflow)? as u64;
 
-        // Calculate Amount to Escrow (After Fee Deduction)
-        let amount_to_escrow = total_amount_lamports
-            .checked_sub(fee)
-            .ok_or(ErrorCode::CalculationOverflow)?;
         // Transfer Fee to Treasury (Marketplace Owner)
         let fee_transfer = Transfer {
             from: self.taker.to_account_info(), //Sarah
@@ -95,24 +101,18 @@ impl<'info> PurchaseCarbonCredits<'info> {
         let fee_ctx = CpiContext::new(self.system_program.to_account_info(), fee_transfer);
         transfer(fee_ctx, fee)?;
 
-        // Transfer Remaining Amount to Vault (Escrow)
+        // Transfer Amount to Vault (Escrow)
         let escrow_transfer = Transfer {
             from: self.taker.to_account_info(), //Sarah
             to: self.vault.to_account_info(),
         };
         let escrow_ctx = CpiContext::new(self.system_program.to_account_info(), escrow_transfer);
-        transfer(escrow_ctx, amount_to_escrow)?;
+        transfer(escrow_ctx, total_amount_for_credits_in_lamports)?;
 
-        // Update Remaining Carbon Credits
-        self.carbon_credit.remaining_carbon_credits = self
-            .carbon_credit
-            .remaining_carbon_credits
-            .checked_sub(number_of_credits)
-            .ok_or(ErrorCode::CalculationOverflow)?;
         Ok(())
     }
 
-    pub fn release_escrow(&mut self) -> Result<()> {
+    pub fn release_funds(&mut self) -> Result<()> {
         // Release escrow to the maker (Alex) after NFT transfer is verified
         let escrow_release = Transfer {
             from: self.vault.to_account_info(),
@@ -126,19 +126,18 @@ impl<'info> PurchaseCarbonCredits<'info> {
 
     fn get_sol_price_feed(&mut self) -> u64 {
         let price_update = &self.price_update;
-        // No Price older than 30 seconds
-        let maximum_age: u64 = 30;
-        let sol_usd_feed = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+
+        let maximum_age: u64 = 30; // No Price older than 30 seconds
+        let sol_usd_feed = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"; //Contract address
 
         let feed_id: [u8; 32] = get_feed_id_from_hex(&sol_usd_feed).unwrap();
         let price = price_update
             .get_price_no_older_than(&Clock::get().unwrap(), maximum_age, &feed_id)
             .unwrap();
 
-        let display_price = u64::try_from(price.price).unwrap()
-            / 10u64.pow(u32::try_from(-price.exponent).unwrap());
+        let display_price = price.price as f64 * 10f64.powi(price.exponent);
 
         msg!("The price is ({}) ", display_price);
-        display_price
+        display_price as u64
     }
 }
