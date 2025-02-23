@@ -6,4 +6,6 @@ pub enum ErrorCode {
     InsufficientCredits,
     #[msg("Calculation Overflow")]
     CalculationOverflow,
+    #[msg("Incorrect Subtraction")]
+    CalculationUnderflow,
 }
