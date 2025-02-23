@@ -18,8 +18,8 @@ umi.use(signerIdentity(signer));
 
 (async () => {
   try {
-    const image = await readFile("./generug.png");
-    const genericImg = createGenericFile(image, "generug.png");
+    const image = await readFile("./nft_regen.jpeg");
+    const genericImg = createGenericFile(image, "nft_regen.jpeg");
     const [myUri] = await umi.uploader.upload([genericImg]);
     console.log(`Image uri is: ${myUri}`);
   } catch (error) {
