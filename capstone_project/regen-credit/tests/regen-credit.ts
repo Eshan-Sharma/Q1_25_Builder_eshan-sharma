@@ -107,4 +107,55 @@ describe("regen-credit", () => {
       assert.include(err.message, "Account does not exist");
     }
   });
+  it("Listing Carbon Credits", async () => {
+    await program.methods
+      .list()
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+
+    const carbonCredit = await program.account.carbonCredit.fetch(
+      carbonCreditPda
+    );
+    assert.isTrue(carbonCredit.listed, "Carbon Credit should be listed");
+  });
+  it("Should fail if the maker is not the signer", async () => {
+    const otherUser = anchor.web3.Keypair.generate();
+    try {
+      await program.methods
+        .list()
+        .accountsPartial({
+          maker: maker.publicKey,
+          carbonCredit: carbonCreditPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([otherUser])
+        .rpc();
+      assert.fail("Listing should fail when the maker is not the signer.");
+    } catch (err) {
+      assert.include(err.message, "unknown signer");
+    }
+  });
+  it("Should fail if the CarbonCredit account is already listed", async () => {
+    try {
+      await program.methods
+        .list()
+        .accountsPartial({
+          maker: maker.publicKey,
+          carbonCredit: carbonCreditPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([maker])
+        .rpc();
+      assert.fail(
+        "Listing should fail when CarbonCredit account is already listed."
+      );
+    } catch (err) {
+      assert.include(err.message, "Carbon Credit is already listed.");
+    }
+  });
 });
