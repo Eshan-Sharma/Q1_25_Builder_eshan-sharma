@@ -35,9 +35,12 @@ pub mod regen_credit {
         Ok(())
     }
 
-    pub fn initialize_marketplace(ctx: Context<InitializeMarketplace>, fee: u16) -> Result<()> {
-        ctx.accounts
-            .init_marketplace("Regen Credit".to_string(), &ctx.bumps, fee)
+    pub fn initialize_marketplace(
+        ctx: Context<InitializeMarketplace>,
+        name: String,
+        fee: u16,
+    ) -> Result<()> {
+        ctx.accounts.init_marketplace(name, &ctx.bumps, fee)
     }
     pub fn list(ctx: Context<List>) -> Result<()> {
         ctx.accounts.list()
