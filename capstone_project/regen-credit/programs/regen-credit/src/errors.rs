@@ -14,4 +14,8 @@ pub enum ErrorCode {
     ValueZero,
     #[msg("Price cannot be 0")]
     PriceZero,
+    #[msg("Remaining Carbon Credits are 0")]
+    RemainingCarbonCreditZero,
+    #[msg("Carbon Credit is already listed")]
+    AlreadyListed,
 }
