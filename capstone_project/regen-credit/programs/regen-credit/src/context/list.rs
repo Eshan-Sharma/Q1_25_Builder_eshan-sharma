@@ -1,6 +1,6 @@
+use crate::errors::ErrorCode;
 use crate::CarbonCredit;
 use anchor_lang::prelude::*;
-
 #[derive(Accounts)]
 pub struct List<'info> {
     #[account(mut)]
@@ -15,6 +15,11 @@ pub struct List<'info> {
 }
 impl<'info> List<'info> {
     pub fn list(&mut self) -> Result<()> {
+        require!(
+            self.carbon_credit.remaining_carbon_credits > 0,
+            ErrorCode::RemainingCarbonCreditZero
+        );
+        require!(!self.carbon_credit.listed, ErrorCode::AlreadyListed);
         self.carbon_credit.listed = true;
         Ok(())
     }
