@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { RegenCredit } from "../target/types/regen_credit";
 import { assert } from "chai";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 
 describe("regen-credit", () => {
   let provider = anchor.AnchorProvider.env();
@@ -9,7 +10,12 @@ describe("regen-credit", () => {
   const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
 
   let maker = anchor.web3.Keypair.generate();
+  let admin = anchor.web3.Keypair.generate();
   let carbonCreditPda;
+  let marketplacePda;
+  let treasuryPda;
+  let marketplaceName = "My Marketplace";
+  let marketplaceFee = 2;
 
   before(async () => {
     await provider.connection.confirmTransaction(
@@ -157,5 +163,77 @@ describe("regen-credit", () => {
     } catch (err) {
       assert.include(err.message, "Carbon Credit is already listed.");
     }
+  });
+  it("Should create a Marketplace Account", async () => {
+    [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
+      program.programId
+    );
+    [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury"), marketplacePda.toBuffer()],
+      program.programId
+    );
+    try {
+      await program.methods
+        .initializeMarketplace(marketplaceName, marketplaceFee)
+        .accountsPartial({
+          admin: admin.publicKey,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+      const marketplace = await program.account.marketplace.fetch(
+        marketplacePda.publicKey
+      );
+      assert.strictEqual(
+        marketplace.name,
+        marketplaceName,
+        "Marketplace names should match"
+      );
+    } catch (err) {}
+  });
+  it("Should fail to recreate Marketplace Account", async () => {
+    [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
+      program.programId
+    );
+    [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury"), marketplacePda.toBuffer()],
+      program.programId
+    );
+    try {
+      await program.methods
+        .initializeMarketplace(marketplaceName, marketplaceFee)
+        .accountsPartial({
+          admin: admin.publicKey,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([admin])
+        .rpc();
+      const marketplace = await program.account.marketplace.fetch(
+        marketplacePda.publicKey
+      );
+      assert.fail("Marketplace creation should fail if it already exists.");
+    } catch (err) {
+      assert.include(err.message, "Simulation failed");
+    }
+  });
+  it("Should fetch all listed CarbonCredit accounts", async () => {
+    const listedCarbonCredits = await program.account.carbonCredit.all([
+      {
+        memcmp: {
+          offset: 24, // Offset to the 'listed' field
+          bytes: bs58.encode(Buffer.from([1])), // Listed == true
+        },
+      },
+    ]);
+    assert.isTrue(
+      listedCarbonCredits.length > 0, //Number of listed carbon credit accounts
+      "Should fetch listed carbon credits"
+    );
   });
 });
