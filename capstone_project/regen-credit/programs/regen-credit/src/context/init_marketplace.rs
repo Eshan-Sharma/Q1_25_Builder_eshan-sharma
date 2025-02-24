@@ -2,7 +2,7 @@ use crate::Marketplace;
 use anchor_lang::prelude::*;
 #[derive(Accounts)]
 #[instruction(name: String)]
-pub struct Initialize<'info> {
+pub struct InitializeMarketplace<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     #[account(
@@ -21,11 +21,11 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> Initialize<'info> {
+impl<'info> InitializeMarketplace<'info> {
     pub fn init_marketplace(
         &mut self,
         name: String,
-        bumps: &InitializeBumps,
+        bumps: &InitializeMarketplaceBumps,
         fee: u16,
     ) -> Result<()> {
         self.marketplace.set_inner(Marketplace {
