@@ -30,6 +30,8 @@ impl<'info> InitializeCarbonCredit<'info> {
         units: EnergyUnits,
         bumps:&InitializeCarbonCreditBumps
     ) -> Result<()> {
+        require!(value!=0,ErrorCode::ValueZero);
+        require!(price_per_carbon_credit!=0,ErrorCode::PriceZero);
         let (original_carbon_credits, grid_emission_factor, grid_emission_factor_decimals) =
             self.calculate_carbon_credits(country.clone(), value.clone());
         let remaining_carbon_credits = original_carbon_credits.clone();
@@ -54,7 +56,9 @@ impl<'info> InitializeCarbonCredit<'info> {
     fn calculate_carbon_credits(&self, country: Country, value: u32) -> (u16, u32, u8) {
         let (grid_emission_factor, grid_emission_factor_decimals) =
             self.get_grid_emission_factor(country);
-        let original_carbon_credits = u16::try_from(value.checked_mul(grid_emission_factor).ok_or(ErrorCode::CalculationOverflow).unwrap()).unwrap();//(value * grid_emission_factor) as u16;
+        let product = value.checked_mul(grid_emission_factor).ok_or(ErrorCode::CalculationOverflow).unwrap();
+        let adjusted_value = product/10u32.pow(grid_emission_factor_decimals.into());
+        let original_carbon_credits = u16::try_from(adjusted_value).unwrap();//(value * grid_emission_factor) as u16;
 
         (
             original_carbon_credits,
