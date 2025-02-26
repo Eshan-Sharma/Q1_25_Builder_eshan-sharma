@@ -45,11 +45,14 @@ pub mod regen_credit {
     pub fn list(ctx: Context<List>) -> Result<()> {
         ctx.accounts.list()
     }
-    // pub fn purchase(ctx: Context<PurchaseCarbonCredits>, number_of_credits: u16) -> Result<()> {
-    //     ctx.accounts.reduce_remaining_credits(number_of_credits)?;
-    //     ctx.accounts.price_and_fee(number_of_credits)?;
-    //     ctx.accounts.transfer_nft()?;
-    //     ctx.accounts.release_funds()?;
-    //     Ok(())
-    // }
+    pub fn reduce_remaining_credits(
+        ctx: Context<ReduceCarbonCredits>,
+        number_of_credits: u16,
+    ) -> Result<()> {
+        ctx.accounts.reduce_remaining_credits(number_of_credits)?;
+        Ok(())
+    }
+    pub fn send_usdc(ctx: Context<SendUsdc>, number_of_credits: u16) -> Result<()> {
+        Ok(())
+    }
 }
