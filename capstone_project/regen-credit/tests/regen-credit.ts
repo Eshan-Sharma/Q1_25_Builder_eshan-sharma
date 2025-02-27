@@ -1029,3 +1029,232 @@ describe("Send USDC and fee", () => {
     }
   });
 });
+
+describe("Admin Operations", () => {
+  let provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
+
+  let maker = anchor.web3.Keypair.generate();
+  let admin = anchor.web3.Keypair.generate();
+  let taker = anchor.web3.Keypair.generate();
+
+  let carbonCreditPda;
+  let marketplacePda;
+  let treasuryPda;
+
+  let mint: PublicKey;
+  let takerUsdc;
+  let makerUsdc;
+  let adminUsdc;
+
+  // Constants
+  let marketplaceName = "admin Marketplace";
+  let marketplaceFee = 2;
+  let pricePerCarbonCredit = 10;
+  let energyValue = 1000;
+
+  before(async () => {
+    // Airdrop
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        maker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        taker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        admin.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+
+    //Get PDAs
+    [carbonCreditPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("carbon_credit"), maker.publicKey.toBuffer()],
+      program.programId
+    );
+    [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
+      program.programId
+    );
+    [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury"), marketplacePda.toBuffer()],
+      program.programId
+    );
+    // USDC Mint
+    mint = await createMint(
+      provider.connection,
+      admin,
+      admin.publicKey,
+      null,
+      6
+    );
+    //Initialize maker's USDC account
+    makerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        maker, // Payer
+        mint, // USDC Mint
+        maker.publicKey // Owner of the account
+      )
+    ).address;
+    // Initialize taker's USDC account
+    takerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        taker, // Payer
+        mint, // USDC Mint
+        taker.publicKey // Owner of the account
+      )
+    ).address;
+    // Initialize taker's USDC account
+    adminUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin, // Payer
+        mint, // USDC Mint
+        admin.publicKey // Owner of the account
+      )
+    ).address;
+
+    await mintTo(
+      provider.connection,
+      taker, //signer
+      mint, //mint
+      takerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      maker, //signer
+      mint, //mint
+      makerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      admin, //signer
+      mint, //mint
+      adminUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+  });
+  it("Initialize Carbon Credit, List and Initialize Marketplace", async () => {
+    //Initialize
+    await program.methods
+      .initializeCarbonCredit(
+        { india: {} },
+        pricePerCarbonCredit,
+        energyValue,
+        {
+          kWh: {},
+        }
+      )
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+
+    //List
+    await program.methods
+      .list()
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+    //Marketplace
+    await program.methods
+      .initializeMarketplace(marketplaceName, marketplaceFee)
+      .accountsPartial({
+        admin: admin.publicKey,
+        marketplace: marketplacePda,
+        treasury: treasuryPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+  });
+  it("Should update the fee if admin is the signer", async () => {
+    await program.methods
+      .updateMarketplaceFee(3)
+      .accountsPartial({
+        maker: maker.publicKey,
+        admin: admin.publicKey,
+        carbonCredit: carbonCreditPda,
+        marketplace: marketplacePda,
+      })
+      .signers([admin])
+      .rpc();
+    let marketplaceAccount = await program.account.marketplace.fetch(
+      marketplacePda
+    );
+    let marketplaceFeeAfter = marketplaceAccount.fee;
+
+    assert.equal(marketplaceFeeAfter, 3);
+  });
+  it("Should fail if a non-admin attempts the update", async () => {
+    try {
+      await program.methods
+        .updateMarketplaceFee(3)
+        .accountsPartial({
+          maker: maker.publicKey,
+          admin: admin.publicKey,
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+        })
+        .signers([maker])
+        .rpc();
+      assert.fail("Expected to fail");
+    } catch (err) {
+      assert.include(err.message, "unknown signer:");
+    }
+  });
+  it("Should allow maker to delist carbon credits", async () => {
+    await program.methods
+      .delist()
+      .accounts({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+
+    const carbonCredit = await program.account.carbonCredit.fetch(
+      carbonCreditPda
+    );
+    assert.isFalse(carbonCredit.listed, "Carbon credit should be delisted");
+  });
+  it("Should fail if delist caller is not maker", async () => {
+    try {
+      await program.methods
+        .delist()
+        .accounts({
+          maker: maker.publicKey, // Invalid caller
+          carbonCredit: carbonCreditPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+        .rpc();
+      assert.fail("Unauthorized user should not be able to delist");
+    } catch (err) {
+      assert.include(err.message, "unknown signer"); // Expected failure
+    }
+  });
+});
