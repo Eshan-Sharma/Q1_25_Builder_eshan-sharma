@@ -1,4 +1,3 @@
-use crate::errors::ErrorCode;
 use crate::CarbonCredit;
 use crate::Marketplace;
 use anchor_lang::prelude::*;
