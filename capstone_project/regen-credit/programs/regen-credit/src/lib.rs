@@ -53,6 +53,8 @@ pub mod regen_credit {
         Ok(())
     }
     pub fn send_usdc(ctx: Context<SendUsdc>, number_of_credits: u16) -> Result<()> {
+        ctx.accounts.send_usdc(number_of_credits)?;
+        ctx.accounts.send_fee(number_of_credits)?;
         Ok(())
     }
 }
