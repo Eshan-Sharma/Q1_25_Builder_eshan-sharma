@@ -57,4 +57,12 @@ pub mod regen_credit {
         ctx.accounts.send_fee(number_of_credits)?;
         Ok(())
     }
+    pub fn update_marketplace_fee(ctx: Context<UpdateMarketplaceFee>, fee: u16) -> Result<()> {
+        ctx.accounts.update_marketplace_fee(fee)?;
+        Ok(())
+    }
+    pub fn delist(ctx: Context<Delist>) -> Result<()> {
+        ctx.accounts.delist()?;
+        Ok(())
+    }
 }
