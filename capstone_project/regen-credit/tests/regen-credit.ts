@@ -11,8 +11,9 @@ import {
   mintTo,
   getOrCreateAssociatedTokenAccount,
 } from "@solana/spl-token";
+import { beforeEach } from "mocha";
 
-describe("RegenCredit Tests", () => {
+describe("RegenCredit Initialize, Listing and Marketplace tests", () => {
   let provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
@@ -88,7 +89,7 @@ describe("RegenCredit Tests", () => {
         maker.publicKey // Owner of the account
       )
     ).address;
-    console.log("Maker USDC:", makerUsdc.toBase58());
+    // console.log("Maker USDC:", makerUsdc.toBase58());
     // Initialize taker's USDC account
     takerUsdc = (
       await getOrCreateAssociatedTokenAccount(
@@ -98,7 +99,7 @@ describe("RegenCredit Tests", () => {
         taker.publicKey // Owner of the account
       )
     ).address;
-    console.log("Taker USDC:", takerUsdc.toBase58());
+    // console.log("Taker USDC:", takerUsdc.toBase58());
     // Initialize taker's USDC account
     adminUsdc = (
       await getOrCreateAssociatedTokenAccount(
@@ -108,7 +109,7 @@ describe("RegenCredit Tests", () => {
         admin.publicKey // Owner of the account
       )
     ).address;
-    console.log("Admin USDC:", adminUsdc.toBase58());
+    // console.log("Admin USDC:", adminUsdc.toBase58());
     await mintTo(
       provider.connection,
       taker, //signer
@@ -135,6 +136,32 @@ describe("RegenCredit Tests", () => {
     );
   });
 
+  it("Should fail reducing carbon credit if the CarbonCredit account does not exist", async () => {
+    try {
+      await program.methods
+        .reduceRemainingCredits(1)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+        .rpc();
+      assert.fail("Expected fetch to fail");
+    } catch (err) {
+      assert.include(err.message, "AccountNotInitialized");
+    }
+  });
   it("Should create a CarbonCredit Account with correct values", async () => {
     await program.methods
       .initializeCarbonCredit(
@@ -368,6 +395,373 @@ describe("RegenCredit Tests", () => {
       );
     } catch (err) {
       console.log("ERROR:", err);
+    }
+  });
+});
+
+describe("Reduce Remaining Carbon Credits", () => {
+  let provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
+
+  let maker = anchor.web3.Keypair.generate();
+  let admin = anchor.web3.Keypair.generate();
+  let taker = anchor.web3.Keypair.generate();
+
+  let carbonCreditPda;
+  let marketplacePda;
+  let treasuryPda;
+
+  let mint: PublicKey;
+  let treasury: PublicKey;
+  let takerUsdc;
+  let makerUsdc;
+  let adminUsdc;
+
+  // Constants
+  let marketplaceName = "New Marketplace";
+  let marketplaceFee = 2;
+  let pricePerCarbonCredit = 10;
+  let energyValue = 1000;
+
+  before(async () => {
+    // Airdrop
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        maker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        taker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        admin.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+
+    //Get PDAs
+    [carbonCreditPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("carbon_credit"), maker.publicKey.toBuffer()],
+      program.programId
+    );
+    [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
+      program.programId
+    );
+    [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury"), marketplacePda.toBuffer()],
+      program.programId
+    );
+    // USDC Mint
+    mint = await createMint(
+      provider.connection,
+      admin,
+      admin.publicKey,
+      null,
+      6
+    );
+    //Initialize maker's USDC account
+    makerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        maker, // Payer
+        mint, // USDC Mint
+        maker.publicKey // Owner of the account
+      )
+    ).address;
+
+    // Initialize taker's USDC account
+    takerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        taker, // Payer
+        mint, // USDC Mint
+        taker.publicKey // Owner of the account
+      )
+    ).address;
+
+    // Initialize taker's USDC account
+    adminUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin, // Payer
+        mint, // USDC Mint
+        admin.publicKey // Owner of the account
+      )
+    ).address;
+
+    await mintTo(
+      provider.connection,
+      taker, //signer
+      mint, //mint
+      takerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      maker, //signer
+      mint, //mint
+      makerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      admin, //signer
+      mint, //mint
+      adminUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+  });
+  it("Initialize Carbon Credit, List and Initialize Marketplace", async () => {
+    //Initialize
+    await program.methods
+      .initializeCarbonCredit(
+        { india: {} },
+        pricePerCarbonCredit,
+        energyValue,
+        {
+          kWh: {},
+        }
+      )
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+
+    //List
+    await program.methods
+      .list()
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+    //Marketplace
+    await program.methods
+      .initializeMarketplace(marketplaceName, marketplaceFee)
+      .accountsPartial({
+        admin: admin.publicKey,
+        marketplace: marketplacePda,
+        treasury: treasuryPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+  });
+  it("Should allow purchase of partial carbon credits if sufficient are available.", async () => {
+    try {
+      let carbonCreditBefore = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+
+      await program.methods
+        .reduceRemainingCredits(70)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+
+        .rpc({ skipPreflight: true });
+
+      let carbonCreditAfter = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+      assert.equal(
+        carbonCreditAfter.remainingCarbonCredits,
+        carbonCreditBefore.remainingCarbonCredits - 70
+      );
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  });
+  it("Should handle partial purchases without de-listing the CarbonCredit account.", async () => {
+    try {
+      let carbonCreditBefore = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+
+      await program.methods
+        .reduceRemainingCredits(carbonCreditBefore.remainingCarbonCredits - 2)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+        .rpc({ skipPreflight: true });
+
+      let carbonCreditAfter = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+      assert.equal(carbonCreditAfter.remainingCarbonCredits, 2);
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  });
+  it("Should fail if the purchase amount is greater than remaining_carbon_credits.", async () => {
+    try {
+      let carbonCreditBefore = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+      //Reduce more carbon credit than available
+      await program.methods
+        .reduceRemainingCredits(carbonCreditBefore.remainingCarbonCredits + 1)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+        .rpc({ skipPreflight: true });
+      assert.fail("Insufficient Carbon Credits");
+    } catch (err) {}
+  });
+  it("Should allow purchase of full carbon credits if sufficient are available.", async () => {
+    try {
+      let carbonCreditBefore = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+
+      await program.methods
+        .reduceRemainingCredits(carbonCreditBefore.remainingCarbonCredits)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+
+        .rpc({ skipPreflight: true });
+
+      let carbonCreditAfter = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+      assert.equal(carbonCreditAfter.remainingCarbonCredits, 0);
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  });
+  it("Should set listed to false if all credits are purchased.", async () => {
+    try {
+      let carbonCredit = await program.account.carbonCredit.fetch(
+        carbonCreditPda
+      );
+      assert.equal(carbonCredit.listed, false, "Carbon Credit is not listed");
+      assert.equal(
+        carbonCredit.remainingCarbonCredits,
+        0,
+        "Carbon Credits are all bought"
+      );
+    } catch (err) {}
+  });
+  it("Should fail if the CarbonCredit is not listed", async () => {
+    try {
+      await program.methods
+        .reduceRemainingCredits(1)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker])
+
+        .rpc({ skipPreflight: true });
+
+      assert.fail("Carbon Credit is not listed");
+    } catch (err) {}
+  });
+  it("Should fail if maker is purchaser", async () => {
+    try {
+      await program.methods
+        .reduceRemainingCredits(1)
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          mint,
+
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          treasury: treasuryPda,
+
+          takerUsdc,
+          makerUsdc,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([maker])
+
+        .rpc({ skipPreflight: true });
+
+      assert.fail("Expected to fail, maker is purchaser");
+    } catch (err) {
+      assert.include(err.message, "unknown signer:");
     }
   });
 });
