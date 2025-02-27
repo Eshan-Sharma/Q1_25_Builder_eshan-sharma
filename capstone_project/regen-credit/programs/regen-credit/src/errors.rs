@@ -18,4 +18,6 @@ pub enum ErrorCode {
     RemainingCarbonCreditZero,
     #[msg("Carbon Credit is already listed")]
     AlreadyListed,
+    #[msg("Carbon Credit is not listed")]
+    NotListed,
 }
