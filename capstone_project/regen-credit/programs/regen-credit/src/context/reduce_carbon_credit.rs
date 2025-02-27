@@ -57,11 +57,15 @@ pub struct ReduceCarbonCredits<'info> {
 }
 impl<'info> ReduceCarbonCredits<'info> {
     pub fn reduce_remaining_credits(&mut self, amount: u16) -> Result<()> {
+        require!(self.carbon_credit.listed, ErrorCode::NotListed);
         //Ensure enough credits are available
         require!(
             self.carbon_credit.remaining_carbon_credits >= amount,
             ErrorCode::InsufficientCredits
         );
+        if self.carbon_credit.remaining_carbon_credits == amount {
+            self.carbon_credit.listed = false;
+        }
         // Reduce carbon credits
         self.carbon_credit.remaining_carbon_credits = self
             .carbon_credit
