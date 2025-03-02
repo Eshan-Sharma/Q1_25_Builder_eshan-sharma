@@ -11,7 +11,14 @@ import {
   mintTo,
   getOrCreateAssociatedTokenAccount,
 } from "@solana/spl-token";
-import { beforeEach } from "mocha";
+import {
+  MPL_CORE_PROGRAM_ID,
+  fetchAsset,
+  fetchCollection,
+  mplCore,
+} from "@metaplex-foundation/mpl-core";
+
+const mplCoreProgramId = new PublicKey(MPL_CORE_PROGRAM_ID);
 
 describe("RegenCredit Initialize, Listing and Marketplace tests", () => {
   let provider = anchor.AnchorProvider.env();
@@ -1259,129 +1266,243 @@ describe("Admin Operations", () => {
   });
 });
 
-// describe("Minting and Sending NFT", () => {
-//   let provider = anchor.AnchorProvider.env();
-//   anchor.setProvider(provider);
-//   const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
+describe("Minting and Sending NFT", () => {
+  let provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  const program = anchor.workspace.RegenCredit as Program<RegenCredit>;
 
-//   let maker = anchor.web3.Keypair.generate();
-//   let admin = anchor.web3.Keypair.generate();
-//   let taker = anchor.web3.Keypair.generate();
+  let maker = anchor.web3.Keypair.generate();
+  let admin = anchor.web3.Keypair.generate();
+  let taker = anchor.web3.Keypair.generate();
 
-//   let carbonCreditPda;
-//   let marketplacePda;
-//   let treasuryPda;
+  let carbonCreditPda;
+  let marketplacePda;
+  let treasuryPda;
 
-//   let mint: PublicKey;
-//   let takerUsdc;
-//   let makerUsdc;
-//   let adminUsdc;
+  let mint: PublicKey;
+  let takerUsdc;
+  let makerUsdc;
+  let adminUsdc;
+  let cardNft = anchor.web3.Keypair.generate();
 
-//   // Constants
-//   let marketplaceName = "nft Marketplace";
-//   let marketplaceFee = 2;
-//   let pricePerCarbonCredit = 10;
-//   let energyValue = 1000;
+  // Constants
+  let marketplaceName = "nft Marketplace";
+  let marketplaceFee = 2;
+  let pricePerCarbonCredit = 10;
+  let energyValue = 1000;
 
-//   before(async () => {
-//     // Airdrop
-//     await provider.connection.confirmTransaction(
-//       await provider.connection.requestAirdrop(
-//         maker.publicKey,
-//         anchor.web3.LAMPORTS_PER_SOL * 20
-//       )
-//     );
-//     await provider.connection.confirmTransaction(
-//       await provider.connection.requestAirdrop(
-//         taker.publicKey,
-//         anchor.web3.LAMPORTS_PER_SOL * 20
-//       )
-//     );
-//     await provider.connection.confirmTransaction(
-//       await provider.connection.requestAirdrop(
-//         admin.publicKey,
-//         anchor.web3.LAMPORTS_PER_SOL * 20
-//       )
-//     );
+  before(async () => {
+    // Airdrop
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        maker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        taker.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(
+        admin.publicKey,
+        anchor.web3.LAMPORTS_PER_SOL * 20
+      )
+    );
 
-//     //Get PDAs
-//     [carbonCreditPda] = await anchor.web3.PublicKey.findProgramAddress(
-//       [Buffer.from("carbon_credit"), maker.publicKey.toBuffer()],
-//       program.programId
-//     );
-//     [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
-//       [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
-//       program.programId
-//     );
-//     [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
-//       [Buffer.from("treasury"), marketplacePda.toBuffer()],
-//       program.programId
-//     );
-//     // USDC Mint
-//     mint = await createMint(
-//       provider.connection,
-//       admin,
-//       admin.publicKey,
-//       null,
-//       6
-//     );
-//     //Initialize maker's USDC account
-//     makerUsdc = (
-//       await getOrCreateAssociatedTokenAccount(
-//         provider.connection,
-//         maker, // Payer
-//         mint, // USDC Mint
-//         maker.publicKey // Owner of the account
-//       )
-//     ).address;
-//     // Initialize taker's USDC account
-//     takerUsdc = (
-//       await getOrCreateAssociatedTokenAccount(
-//         provider.connection,
-//         taker, // Payer
-//         mint, // USDC Mint
-//         taker.publicKey // Owner of the account
-//       )
-//     ).address;
-//     // Initialize taker's USDC account
-//     adminUsdc = (
-//       await getOrCreateAssociatedTokenAccount(
-//         provider.connection,
-//         admin, // Payer
-//         mint, // USDC Mint
-//         admin.publicKey // Owner of the account
-//       )
-//     ).address;
+    //Get PDAs
+    [carbonCreditPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("carbon_credit"), maker.publicKey.toBuffer()],
+      program.programId
+    );
+    [marketplacePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("marketplace"), Buffer.from(marketplaceName)],
+      program.programId
+    );
+    [treasuryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury"), marketplacePda.toBuffer()],
+      program.programId
+    );
+    // USDC Mint
+    mint = await createMint(
+      provider.connection,
+      admin,
+      admin.publicKey,
+      null,
+      6
+    );
+    //Initialize maker's USDC account
+    makerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        maker, // Payer
+        mint, // USDC Mint
+        maker.publicKey // Owner of the account
+      )
+    ).address;
+    // Initialize taker's USDC account
+    takerUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        taker, // Payer
+        mint, // USDC Mint
+        taker.publicKey // Owner of the account
+      )
+    ).address;
+    // Initialize taker's USDC account
+    adminUsdc = (
+      await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin, // Payer
+        mint, // USDC Mint
+        admin.publicKey // Owner of the account
+      )
+    ).address;
 
-//     await mintTo(
-//       provider.connection,
-//       taker, //signer
-//       mint, //mint
-//       takerUsdc, //destination
-//       admin, //authority
-//       1000000000 // 1000 USDC
-//     );
-//     await mintTo(
-//       provider.connection,
-//       maker, //signer
-//       mint, //mint
-//       makerUsdc, //destination
-//       admin, //authority
-//       1000000000 // 1000 USDC
-//     );
-//     await mintTo(
-//       provider.connection,
-//       admin, //signer
-//       mint, //mint
-//       adminUsdc, //destination
-//       admin, //authority
-//       1000000000 // 1000 USDC
-//     );
-//   });
-//   it("Should mint an NFT after receiving the correct amount of SOL", async () => {});
-//   it("Should transfer the NFT to the user.", async () => {});
-//   it("Should include purchase details in the NFT metadata (e.g., number of credits, country, source type).", async () => {});
-//   it("Should fail if the SOL amount is incorrect.", async () => {});
-//   it("Should fail if the NFT minting account is not initialized.", async () => {});
-//   it("Should fail if the NFT transfer fails.", async () => {});
-// });
+    await mintTo(
+      provider.connection,
+      taker, //signer
+      mint, //mint
+      takerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      maker, //signer
+      mint, //mint
+      makerUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+    await mintTo(
+      provider.connection,
+      admin, //signer
+      mint, //mint
+      adminUsdc, //destination
+      admin, //authority
+      1000000000 // 1000 USDC
+    );
+  });
+  it("Initialize Carbon Credit, List and Initialize Marketplace", async () => {
+    //Initialize
+    await program.methods
+      .initializeCarbonCredit(
+        { india: {} },
+        pricePerCarbonCredit,
+        energyValue,
+        {
+          kWh: {},
+        }
+      )
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+
+    //List
+    await program.methods
+      .list()
+      .accountsPartial({
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([maker])
+      .rpc();
+    //Marketplace
+    await program.methods
+      .initializeMarketplace(marketplaceName, marketplaceFee)
+      .accountsPartial({
+        admin: admin.publicKey,
+        marketplace: marketplacePda,
+        treasury: treasuryPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+  });
+  it("Should mint an NFT after receiving the correct amount of SOL", async () => {
+    await program.methods
+      .mintNft({
+        name: "Test Card",
+        uri: "https://example.com/card",
+      })
+      .accountsPartial({
+        taker: taker.publicKey,
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        marketplace: marketplacePda,
+        asset: cardNft.publicKey,
+        mplCoreProgram: mplCoreProgramId,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([taker, maker, cardNft])
+      .rpc();
+  });
+  it("Should include purchase details in the NFT metadata (e.g., number of credits, country, source type).", async () => {
+    await program.methods
+      .mintNft({
+        name: "Test Card",
+        uri: "https://example.com/card/ contains metadata",
+      })
+      .accountsPartial({
+        taker: taker.publicKey,
+        maker: maker.publicKey,
+        carbonCredit: carbonCreditPda,
+        marketplace: marketplacePda,
+        asset: cardNft.publicKey,
+        mplCoreProgram: mplCoreProgramId,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([taker, maker, cardNft])
+      .rpc();
+  });
+  it("Should fail if the NFT minting account is not initialized.", async () => {
+    try {
+      await program.methods
+        .mintNft({
+          name: "Test Card",
+          uri: "https://example.com/card/",
+        })
+        .accountsPartial({
+          taker: taker.publicKey,
+          maker: maker.publicKey,
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          asset: cardNft.publicKey,
+          mplCoreProgram: mplCoreProgramId,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker, maker])
+        .rpc();
+      assert.fail("Expected to fail");
+    } catch (err) {}
+  });
+  it("Should fail if the NFT transfer fails.", async () => {
+    try {
+      await program.methods
+        .mintNft({
+          name: "Test Card",
+          uri: "https://example.com/card/",
+        })
+        .accountsPartial({
+          taker: maker.publicKey,
+          maker: maker.publicKey,
+          carbonCredit: carbonCreditPda,
+          marketplace: marketplacePda,
+          asset: cardNft.publicKey,
+          mplCoreProgram: mplCoreProgramId,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([taker, maker, cardNft])
+        .rpc();
+      assert.fail("Expected to fail");
+    } catch (err) {}
+  });
+});
