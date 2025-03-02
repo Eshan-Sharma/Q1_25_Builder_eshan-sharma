@@ -9,6 +9,7 @@ pub mod state;
 pub use context::*;
 pub use state::*;
 
+pub use helper::CardArgs;
 pub use helper::Country;
 pub use helper::EnergyUnits;
 pub use helper::SourceType;
@@ -63,6 +64,10 @@ pub mod regen_credit {
     }
     pub fn delist(ctx: Context<Delist>) -> Result<()> {
         ctx.accounts.delist()?;
+        Ok(())
+    }
+    pub fn mint_nft(ctx: Context<MintNft>, args: CardArgs) -> Result<()> {
+        ctx.accounts.mint_nft(args)?;
         Ok(())
     }
 }
