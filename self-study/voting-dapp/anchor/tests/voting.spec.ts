@@ -26,5 +26,16 @@ describe("Voting", () => {
         "What is your favorite peanut butter?"
       )
       .rpc();
+
+    const [pollAddress] = PublicKey.findProgramAddressSync(
+      [new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      votingAddress
+    );
+    const poll = await votingProgram.account.poll.fetch(pollAddress);
+    console.log(poll);
+    expect(poll.pollId.toNumber()).toEqual(1);
+    expect(poll.description).toEqual("What is your favorite peanut butter?");
+    expect(poll.pollStart.toNumber()).toBeLessThan(poll.pollEnd.toNumber());
+    expect(poll.candidateAmount.toNumber()).toEqual(0);
   });
 });
