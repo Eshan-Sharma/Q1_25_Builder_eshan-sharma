@@ -8,63 +8,41 @@ declare_id!("coUnmi3oBUtwtd9fjeAvSsJssXh5A5xyPbhpewyzRVF");
 pub mod crudapp {
     use super::*;
 
-  pub fn close(_ctx: Context<CloseCrudapp>) -> Result<()> {
-    Ok(())
-  }
-
-  pub fn decrement(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.crudapp.count = ctx.accounts.crudapp.count.checked_sub(1).unwrap();
-    Ok(())
-  }
-
-  pub fn increment(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.crudapp.count = ctx.accounts.crudapp.count.checked_add(1).unwrap();
-    Ok(())
-  }
-
-  pub fn initialize(_ctx: Context<InitializeCrudapp>) -> Result<()> {
-    Ok(())
-  }
-
-  pub fn set(ctx: Context<Update>, value: u8) -> Result<()> {
-    ctx.accounts.crudapp.count = value.clone();
-    Ok(())
-  }
+    pub fn create_journal_entry(
+        ctx: Context<CreateEntry>,
+        title: String,
+        message: String,
+    ) -> Result<()> {
+        let journal = &mut ctx.accounts.journal_entry;
+        journal.owner = ctx.accounts.user.key();
+        journal.title = title;
+        journal.message = message;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
-pub struct InitializeCrudapp<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
-
-  #[account(
-  init,
-  space = 8 + Crudapp::INIT_SPACE,
-  payer = payer
-  )]
-  pub crudapp: Account<'info, Crudapp>,
-  pub system_program: Program<'info, System>,
-}
-#[derive(Accounts)]
-pub struct CloseCrudapp<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
-
-  #[account(
-  mut,
-  close = payer, // close account and return lamports to payer
-  )]
-  pub crudapp: Account<'info, Crudapp>,
-}
-
-#[derive(Accounts)]
-pub struct Update<'info> {
-  #[account(mut)]
-  pub crudapp: Account<'info, Crudapp>,
+#[instruction(title: String)]
+pub struct CreateEntry<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+      init, 
+      payer = user,
+      space = 8 + JournalEntryState::INIT_SPACE,
+      seeds = [user.key().as_ref(), title.as_bytes().as_ref()],
+      bump
+    )]
+    pub journal_entry: Account<'info, JournalEntryState>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct Crudapp {
-  count: u8,
+pub struct JournalEntryState {
+    pub owner: Pubkey,
+    #[max_len(32)]
+    pub title: String,
+    #[max_len(1024)]
+    pub message: String,
 }
