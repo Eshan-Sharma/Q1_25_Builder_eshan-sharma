@@ -19,6 +19,12 @@ pub mod crudapp {
         journal.message = message;
         Ok(())
     }
+
+    pub fn update_journal_entry(ctx: Context<UpdateEntry>,_title: String, message: String) -> Result<()> {
+        let journal = &mut ctx.accounts.journal_entry;
+        journal.message = message;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -45,4 +51,21 @@ pub struct JournalEntryState {
     pub title: String,
     #[max_len(1024)]
     pub message: String,
+}
+
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct UpdateEntry<'info> {
+    #[account(mut)]
+    pub user:Signer<'info>,
+    #[account(
+        mut,
+        seeds = [user.key().as_ref(), title.as_bytes().as_ref()],
+        bump,
+        realloc = 8 + JournalEntryState::INIT_SPACE,
+        realloc::payer = user,
+        realloc::zero = false
+      )]
+    pub journal_entry: Account<'info, JournalEntryState>,
+    pub system_program: Program<'info, System>,
 }
