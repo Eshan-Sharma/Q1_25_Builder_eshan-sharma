@@ -25,6 +25,10 @@ pub mod crudapp {
         journal.message = message;
         Ok(())
     }
+
+    pub fn delete_journal_entry(_ctx: Context<DeleteEntry>,_title: String) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -65,6 +69,21 @@ pub struct UpdateEntry<'info> {
         realloc = 8 + JournalEntryState::INIT_SPACE,
         realloc::payer = user,
         realloc::zero = false
+      )]
+    pub journal_entry: Account<'info, JournalEntryState>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct DeleteEntry<'info> {
+    #[account(mut)]
+    pub user:Signer<'info>,
+    #[account(
+        mut,
+        seeds = [user.key().as_ref(), title.as_bytes().as_ref()],
+        bump,
+        close = user
       )]
     pub journal_entry: Account<'info, JournalEntryState>,
     pub system_program: Program<'info, System>,
