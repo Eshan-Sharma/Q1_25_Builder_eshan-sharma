@@ -12,11 +12,12 @@ import {
 
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   generateSigner,
   keypairIdentity,
   percentAmount,
+  publicKey,
 } from "@metaplex-foundation/umi";
 
 const connection = new Connection("https://api.devnet.solana.com");
@@ -38,25 +39,26 @@ umi.use(keypairIdentity(umiUser));
 
 console.log("Set up Umi instance for user");
 
-const collectionMint = generateSigner(umi);
-const transaction = await createNft(umi, {
-  mint: collectionMint,
-  name: "My Collection",
-  symbol: "COL",
-  uri: "https://raw.githubusercontent.com/solana-developers/professional-education/main/labs/sample-nft-collection-offchain-data.json",
-  sellerFeeBasisPoints: percentAmount(0),
-  isCollection: true,
-});
-await transaction.sendAndConfirm(umi);
-
-const createdCollectionNft = await fetchDigitalAsset(
-  umi,
-  collectionMint.publicKey
+const collectionAddress = publicKey(
+  "ChfGtd2wT12c2u82PHNpe4PdQ5PMqJnVECfaNbQ2uaVw"
 );
+console.log("Creating NFT");
+
+const mint = generateSigner(umi);
+const transaction = await createNft(umi, {
+  mint,
+  name: "My NFT",
+  uri: "https://raw.githubusercontent.com/solana-developers/professional-education/main/labs/sample-nft-offchain-data.json",
+  sellerFeeBasisPoints: percentAmount(0),
+  collection: { key: collectionAddress, verified: false },
+});
+
+await transaction.sendAndConfirm(umi);
+const createdNft = await fetchDigitalAsset(umi, mint.publicKey);
 console.log(
-  `Created collection, address is ${getExplorerLink(
+  `Created NFT, address is ${getExplorerLink(
     "address",
-    createdCollectionNft.mint.publicKey,
+    createdNft.mint.publicKey,
     "devnet"
   )}`
 );
