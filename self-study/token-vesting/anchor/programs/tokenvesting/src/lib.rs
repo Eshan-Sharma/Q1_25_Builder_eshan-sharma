@@ -65,3 +65,10 @@ pub struct VestingAccount {
     pub bump: u8,
     pub treasury_bump: u8,
 }
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Claiming is not available yet.")]
+    ClaimNotAvailableYet,
+    #[msg("There is nothing to claim.")]
+    NothingToClaim,
+}
