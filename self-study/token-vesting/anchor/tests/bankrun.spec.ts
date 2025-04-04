@@ -112,4 +112,24 @@ describe("Vesting Smart Contract Tests", () => {
     );
     console.log("Mint to treasury transaction signature: ", mintTx);
   });
+
+  it("Should create employee vesting account", async () => {
+    const tx2 = await program2.methods
+      .createEmployeeAccount(
+        new anchor.BN(0),
+        new anchor.BN(100),
+        new anchor.BN(0),
+        new anchor.BN(100)
+      )
+      .accountsPartial({
+        owner: employer.publicKey,
+        beneficiary: beneficiary.publicKey,
+        vestingAccount: vestingAccountKey,
+      })
+      .signers([employer])
+      .rpc({ commitment: "confirmed", skipPreflight: true });
+
+    console.log("Create Employee Account Tx: ", tx2);
+    console.log("Employee Account: ", employeeAccount.toBase58);
+  });
 });
